@@ -1,6 +1,7 @@
 import atexit
 import json
 import os
+import re
 import traceback
 from datetime import datetime
 from multiprocessing import Process
@@ -23,7 +24,6 @@ load_dotenv()
 api_app = Flask(__name__)
 
 PUSH_REVIEW_ENABLED = os.environ.get('PUSH_REVIEW_ENABLED', '0') == '1'
-
 
 @api_app.route('/')
 def home():
@@ -147,6 +147,8 @@ def __handle_push_event(webhook_data: dict, gitlab_token: str, gitlab_url: str):
             logger.error('Failed to get commits')
             return
 
+            # review 代码
+        PUSH_REVIEW_ENABLED = os.environ.get('PUSH_REVIEW_ENABLED', '0') == '1'
         review_result = None
         score = 0
         if PUSH_REVIEW_ENABLED:
@@ -165,9 +167,11 @@ def __handle_push_event(webhook_data: dict, gitlab_token: str, gitlab_url: str):
             # 将review结果提交到Gitlab的 notes
             handler.add_push_notes(f'Auto Review Result: \n{review_result}')
 
+        # d打印webhook_data
+        logger.info('webhook_data: %s', webhook_data)
         event_manager['push_reviewed'].send(PushReviewEntity(
             project_name=webhook_data['project']['name'],
-            author=webhook_data['user_username'],
+            author=webhook_data['user_name'],
             branch=webhook_data['project']['default_branch'],
             updated_at=int(datetime.now().timestamp()),  # 当前时间
             commits=commits,

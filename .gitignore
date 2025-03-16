@@ -13,3 +13,4 @@ data/*
 .pyc
 __pycache__/
 .cursorignore
+data/data.db
